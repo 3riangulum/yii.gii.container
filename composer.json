@@ -1,0 +1,45 @@
+{
+  "name": "3riangulum/gii-module-container",
+  "type": "library",
+  "description": "GII module container",
+  "keywords": [
+    "Yii2",
+    "GII"
+  ],
+  "homepage": "https://github.com/3riangulum/yii.gii.container/",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "RD",
+      "email": "here.i.come@ro.ru",
+      "role": "Developer"
+    }
+  ],
+  "minimum-stability": "dev",
+  "require": {
+    "php": "^7.4",
+    "ext-json": "*",
+    "ext-mbstring": "*",
+    "ext-pdo": "*",
+    "yiisoft/yii2": "~2.0.4",
+    "yiisoft/yii2-gii": "2.2.3",
+    "3riangulum/yii-module-container": "*"
+  },
+  "autoload": {
+    "psr-4": {
+      "Triangulum\\Yii\\GiiContainer\\": "src/"
+    }
+  },
+  "config": {
+    "sort-packages": true
+  },
+  "fxp-asset": {
+    "enabled": false
+  },
+  "repositories": [
+    {
+      "type": "composer",
+      "url": "https://asset-packagist.org"
+    }
+  ]
+}
