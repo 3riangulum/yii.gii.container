@@ -1,6 +1,5 @@
 <?php
 
-
 namespace Triangulum\Yii\GiiContainer;
 
 use yii\base\NotSupportedException;
@@ -29,12 +28,17 @@ trait CustomModuleGeneratorSchemaTrait
 
     protected function getTableSchemaClass(): string
     {
-        return Inflector::id2camel($this->containerId . 'Schema', '_');
+        return str_replace(
+            'Model',
+            '',
+
+            Inflector::id2camel($this->modelClass . 'Schema', '_')
+        );
     }
 
     protected function getTableSchemaUse(): string
     {
-        return 'use ' . $this->getModelNS() . '\\' .$this->getTableSchemaClass();
+        return 'use ' . $this->getModelNS() . '\\' . $this->getTableSchemaClass();
     }
 
     public function getTableSchemaField(string $field): string
