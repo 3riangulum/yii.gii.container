@@ -2,6 +2,7 @@
 
 namespace Triangulum\Yii\GiiContainer;
 
+use Triangulum\Yii\ModuleContainer\System\Db\RepositoryBase;
 use yii\base\NotSupportedException;
 use yii\db\BaseActiveRecord;
 use yii\db\Schema;
@@ -13,12 +14,12 @@ trait CustomModuleGeneratorSchemaTrait
 {
     public string $containerId = '';
 
+
+    protected ?string $tableSchemaFullName = null;
+
     public function rulesModel(): array
     {
-        return [
-            [['containerId'], 'required'],
-            [['containerId'], 'filter', 'filter' => 'trim'],
-        ];
+        return [];
     }
 
     protected function getModelNS(): string
@@ -28,17 +29,29 @@ trait CustomModuleGeneratorSchemaTrait
 
     protected function getTableSchemaClass(): string
     {
-        return str_replace(
-            'Model',
-            '',
+        if($this->tableSchemaFullName !== null) {
+            return $this->tableSchemaFullName;
+        }
 
-            Inflector::id2camel($this->modelClass . 'Schema', '_')
+        $list = explode('\\',$this->modelClass);
+
+        $name = array_pop($list);
+        $schemaName = str_replace(
+            ['Model', 'Entity'],
+            ['',''],
+            Inflector::id2camel($name . 'Schema', '_')
         );
+
+        $list[count($list)] = $schemaName;
+
+        $this->tableSchemaFullName = implode('\\', $list);
+
+        return $this->tableSchemaFullName;
     }
 
     protected function getTableSchemaUse(): string
     {
-        return 'use ' . $this->getModelNS() . '\\' . $this->getTableSchemaClass();
+        return 'use ' . $this->getTableSchemaClass();
     }
 
     public function getTableSchemaField(string $field): string
@@ -301,5 +314,42 @@ trait CustomModuleGeneratorSchemaTrait
         }
 
         return "\$form->field(\$model," . $this->getTableSchemaField($attribute) . ")->$input(['maxlength' => true])";
+    }
+
+    protected function getRepositoryClassName(): string
+    {
+        return ucfirst(Inflector::id2camel($this->containerId . RepositoryBase::ID, '_'));
+    }
+
+    protected function getRepositoryClass(): string
+    {
+        return $this->getModelNS() . '\\' . $this->getRepositoryClassName();
+    }
+
+    protected function getRepositoryVar(): string
+    {
+        return '$' . lcfirst(Inflector::id2camel($this->containerId . RepositoryBase::ID, '_'));
+    }
+
+    protected function getRepositoryParam(): string
+    {
+        return $this->getRepositoryClass() . ' ' . $this->getRepositoryVar();
+    }
+
+    protected function getModelSearchClassName(): string
+    {
+        $modelClass = StringHelper::basename($this->modelClass);
+        $searchModelClass = StringHelper::basename($this->searchModelClass);
+        $searchModelAlias = $searchModelClass;
+        if ($modelClass === $searchModelClass) {
+            $searchModelAlias = $searchModelClass . 'Search';
+        }
+
+        return $searchModelAlias;
+    }
+
+    protected function getModelSearchClass(): string
+    {
+        return $this->getModelNS() . '\\' . $this->getModelSearchClassName();
     }
 }

@@ -38,7 +38,7 @@ class Generator extends \yii\gii\Generator
     /**
      * @var string
      */
-    public $controllerClass;
+    public $controllerClass = '\backend\controllers\\';
     /**
      * @var string The controller view path
      */
@@ -46,7 +46,7 @@ class Generator extends \yii\gii\Generator
     /**
      * @var string
      */
-    public $baseControllerClass = 'Triangulum\Yii\ModuleContainer\UI\ControllerBase';
+    public $baseControllerClass = 'Triangulum\Yii\Unit\Controller\ControllerWeb';
     /**
      * @var string
      */
@@ -114,6 +114,7 @@ class Generator extends \yii\gii\Generator
     public function attributeLabels()
     {
         return array_merge(parent::attributeLabels(), [
+            'unitNs'              => 'Unit path (backend\units\abc\)',
             'modelClass'          => 'Model Class',
             'controllerClass'     => 'Controller Class',
             'viewPath'            => 'View Path',
@@ -178,22 +179,74 @@ class Generator extends \yii\gii\Generator
         }
     }
 
+    protected function generateProperties($table)
+    {
+        $properties = [];
+        foreach ($table->columns as $column) {
+            switch ($column->type) {
+                case Schema::TYPE_SMALLINT:
+                case Schema::TYPE_INTEGER:
+                case Schema::TYPE_BIGINT:
+                case Schema::TYPE_TINYINT:
+                    $type = 'int';
+                    break;
+                case Schema::TYPE_BOOLEAN:
+                    $type = 'bool';
+                    break;
+                case Schema::TYPE_FLOAT:
+                case Schema::TYPE_DOUBLE:
+                case Schema::TYPE_DECIMAL:
+                case Schema::TYPE_MONEY:
+                    $type = 'float';
+                    break;
+                case Schema::TYPE_DATE:
+                case Schema::TYPE_TIME:
+                case Schema::TYPE_DATETIME:
+                case Schema::TYPE_TIMESTAMP:
+                case Schema::TYPE_JSON:
+                    $type = 'string';
+                    break;
+                default:
+                    $type = $column->phpType;
+            }
+            if ($column->allowNull) {
+                $type .= '|null';
+            }
+            $properties[$column->name] = [
+                'type'    => $type,
+                'name'    => $column->name,
+                'comment' => $column->comment,
+            ];
+        }
+
+        return $properties;
+    }
+
     /**
      * {@inheritdoc}
      */
     public function generate()
     {
         $params = [
+            'entityClassFull' => $this->modelClass,
+            'properties'              => $this->generateProperties($this->getTableSchema()),
+            'repositoryClassNameFull' => $this->getRepository(),
+            'tableSchemaClassFull'    => $this->getTableSchemaClassFull(),
+            'unitAlias'               => $this->getUnitAlias(),
+            'frontNS'                 => $this->getFrontNS(),
+            'frontClass'              => $this->getFrontClass(),
+            'frontUse'                => $this->getFrontUse(),
+            'frontParam'              => $this->getFrontParam(),
+            'frontVar'                => $this->getFrontVar(),
+
+            'routeNS'        => $this->getUnitNS().'\\'.$this->getRouteClassName(),
+            'routeClassName' => $this->getRouteClassName(),
+
+            ######
             'containerId'    => $this->containerId,
             'containerNS'    => $this->getContainerNS(),
             'containerClass' => $this->getContainerClass(),
             'containerUse'   => $this->getContainerUse(),
-
-            'frontNS'    => $this->getFrontNS(),
-            'frontClass' => $this->getFrontClass(),
-            'frontUse'   => $this->getFrontUse(),
-            'frontParam' => $this->getFrontParam(),
-            'frontVar'   => $this->getFrontVar(),
 
             'logUse'   => $this->getLogUse(),
             'logParam' => $this->getLogParam(),
@@ -203,20 +256,33 @@ class Generator extends \yii\gii\Generator
             'cacheParam' => $this->getCacheParam(),
             'cacheVar'   => $this->getCacheVar(),
 
-            'gridNS'         => $this->getFrontNS() . '\\' . $this->getGridClass(),
-            'gridClass'      => $this->getGridClass(),
-            'tableSchemaUse' => $this->getTableSchemaUse(),
+            'gridNS'    => $this->getFrontNS() . '\\' . $this->getGridClass(),
+            'gridClass' => $this->getGridClass(),
+
+            'modelNs'          => $this->getModelNS(),
+            'tableSchemaUse'   => $this->getTableSchemaUse(),
+            'tableSchemaClass' => $this->getTableSchemaClass(),
+
+            'repositoryClass'     => $this->getRepositoryClass(),
+            'repositoryClassName' => $this->getRepositoryClassName(),
+            'repositoryVar'       => $this->getRepositoryVar(),
+            'repositoryParam'     => $this->getRepositoryParam(),
+
+            'modelSearchClass'     => $this->getModelSearchClass(),
+            'modelSearchClassName' => $this->getModelSearchClassName(),
+
+            'crudFormClass' => $this->getCrudFormClass(),
+            'crudFormNS' => $this->getCrudFormNS(),
         ];
+
+        ray($params);
 
         $files = [];
 
         if (!empty($this->searchModelClass)) {
-            $searchModel = Yii::getAlias('@' . str_replace('\\', '/', ltrim($this->searchModelClass, '\\') . '.php'));
-            $files[] = new CodeFile($searchModel, $this->render('search.php'));
+            $searchModel = str_replace('\\', '/', ltrim($this->searchModelClass, '\\') . '.php');
+            $files[] = new CodeFile($searchModel, $this->render('search.php', $params));
         }
-
-        $containerFile = str_replace('\\', '/', ltrim($this->getContainerNS() . '\\' . $this->getContainerClass(), '\\')) . '.php';
-        $files[] = new CodeFile($containerFile, $this->render('module_container.php', $params));
 
         $controllerFile = Yii::getAlias('@' . str_replace('\\', '/', ltrim($this->controllerClass, '\\')) . '.php');
         $files[] = new CodeFile($controllerFile, $this->render('controller.php', $params));
@@ -232,17 +298,36 @@ class Generator extends \yii\gii\Generator
             }
         }
 
+        # Router
+        $routerClassPath = str_replace('\\', '/', ltrim($this->getUnitNS() . '\\' . $this->getRouteClassName(), '\\')) . '.php';
+        $files[] = new CodeFile($routerClassPath, $this->render('router.php', $params));
+
+        # Grid
         $gridFile = str_replace('\\', '/', ltrim($this->getFrontNS() . '\\' . $this->getGridClass(), '\\')) . '.php';
         $files[] = new CodeFile($gridFile, $this->render('grid.php', $params));
 
+
+        # Crud Form
+        $crudFormFile = str_replace('\\', '/', ltrim($this->getCrudFormNS())) . '.php';
+        $files[] = new CodeFile($crudFormFile, $this->render('crud_form.php', $params));
+
+        ray($crudFormFile)->red();
+
+
+        # Front
         $frontFile = str_replace('\\', '/', ltrim($this->getFrontNS() . '\\' . $this->getFrontClass(), '\\')) . '.php';
         $files[] = new CodeFile($frontFile, $this->render('front.php', $params));
 
-        $sqlFile = $this->getModelNS() . '/sql/' . Inflector::id2camel($this->containerId, '_') . '.sql';
-        $files[] = new CodeFile($sqlFile, $this->render('sql.php', $params));
+//        ray($repositoryClassPath)->red();
 
-        $sqlFile = $this->moduleNS . '/config/module_bootstrap_ui.php';
-        $files[] = new CodeFile($sqlFile, $this->render('module_bootstrap_ui.php', $params));
+//        $sqlFile = $this->getModelNS() . '/sql/' . Inflector::id2camel($this->containerId, '_') . '.sql';
+//        $files[] = new CodeFile($sqlFile, $this->render('sql.php', $params));
+//
+//        $configFile = $this->moduleNS . '/config/module_bootstrap_ui.php';
+//        $files[] = new CodeFile($configFile, $this->render('module_bootstrap_ui.php', $params));
+//
+//        $repositoryFile = $this->getModelNS() . '/'.$this->getRepositoryClassName().'.php';
+//        $files[] = new CodeFile($repositoryFile, $this->render('repository.php', $params));
 
         return $files;
     }

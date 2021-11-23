@@ -7,6 +7,13 @@ use yii\helpers\StringHelper;
 /* @var $frontNS string */
 /* @var $frontClass string */
 /* @var $gridClass string */
+/* @var $routeClassName string */
+/* @var $modelSearchClassName string */
+/* @var $modelSearchClass string */
+/* @var $crudFormClass string */
+/* @var $entityClassFull string */
+/* @var $routeNS string */
+/* @var $crudFormNS string */
 
 $searchModelClass = StringHelper::basename($generator->searchModelClass); ?>
 
@@ -14,42 +21,56 @@ $searchModelClass = StringHelper::basename($generator->searchModelClass); ?>
 
 namespace <?php echo $frontNS?>;
 
-use Triangulum\Yii\ModuleContainer\UI\Front\Element\ElementGrid;
-use Triangulum\Yii\ModuleContainer\UI\Front\FrontBase;
+use \<?php echo $routeNS?>;
+use <?php echo $crudFormNS?>;
+
+use Triangulum\Yii\Unit\Front\FrontCrud;
+use Triangulum\Yii\Unit\Front\Items\FrontSimple;
 use <?php echo $generator->searchModelClass;?>;
+use \Triangulum\Yii\Unit\Front\Items\FrontItem;
+use \Triangulum\Yii\Unit\Html\Label\Label;
+use \Triangulum\Yii\Unit\Html\Label\LabelInline;
+use \Triangulum\Yii\Unit\Html\Dropdown\Dropdown;
+use \Triangulum\Yii\Unit\Html\Dropdown\FilterDropdown;
+use \Triangulum\Yii\Unit\Html\Time\Time;
+use \Triangulum\Yii\Unit\Html\Text\Text;
+use \Triangulum\Yii\Unit\Html\Icons\Icons;
+use \Triangulum\Yii\Unit\Html\Span\Span;
+use \Triangulum\Yii\Unit\Html\Growl;
+use Triangulum\Yii\Unit\Html\Menu\MenuItem;
 
-use Triangulum\Yii\ModuleContainer\UI\Front\Element\ElementPopup;
-use Triangulum\Yii\ModuleContainer\UI\Html\Label;
-use Triangulum\Yii\ModuleContainer\UI\Html\LabelInline;
-use Triangulum\Yii\ModuleContainer\UI\Html\Dropdown\Dropdown;
-use Triangulum\Yii\ModuleContainer\UI\Html\Dropdown\FilterDropdown;
-use Triangulum\Yii\ModuleContainer\UI\Html\Time;
-use Triangulum\Yii\ModuleContainer\UI\Html\Text;
-use Triangulum\Yii\ModuleContainer\UI\Html\Icons;
-use Triangulum\Yii\ModuleContainer\UI\Html\Span;
-use Triangulum\Yii\ModuleContainer\UI\Html\Growl;
-use \Triangulum\Yii\ModuleContainer\UI\Front\FrontCrud;
-
+/**
+* @method static self build
+*/
 final class <?php echo $frontClass ?> extends FrontCrud
 {
+    protected string $title = 'Set title!';
 
-    public function gridSearch(<?php echo $searchModelClass?> $searchModel, array $searchParams = []): <?php echo $gridClass?>
+    public function __construct(<?php echo $routeClassName ?> $router)
     {
-        /** @var <?php echo $gridClass?> $grid */
-        $grid = ElementGrid::builder($this->actionConfig()[self::ALIAS_GRID]);
+        $this->gridClass = <?php echo $gridClass ;?>::class;
+        parent::__construct($router);
+    }
 
-        if ($this->editor()->isAllowed()) {
-        $grid->clickEventSet($this->editor(), self::ALIAS_EDITOR);
-        } elseif ($this->viewer()->isAllowed()) {
-        $grid->clickEventSet($this->viewer(), self::ALIAS_VIEWER);
-        }
+    protected function loadDataExplorer(): <?php echo $modelSearchClassName;?>
+    {
+        return <?php echo $modelSearchClassName;?>::build([]);
+    }
 
-        $grid->clickEventSet($this->duplicator(), self::ALIAS_DUPLICATOR);
-        $grid->actionColumnSet([$this->duplicator()]);
+    public function loadCrudForm(<?php echo $entityClassFull;?> $entity, FrontSimple $ui): <?php echo $crudFormClass;?>
+    {
+        return <?php echo $crudFormClass;?>::build([
+            'ui'                 => $ui,
+            'entity'             => $entity,
+        ]);
+    }
 
-        $grid->dataProviderSet($searchModel->search($searchParams));
-        $grid->searchModelSet($searchModel);
-
-        return $grid;
+    public function menu(string $title = null): MenuItem
+        {
+        return MenuItem::build(
+            $this->router,
+            $title ?? $this->title,
+            \<?php echo $routeNS?>::ACTION_INDEX
+        );
     }
 }

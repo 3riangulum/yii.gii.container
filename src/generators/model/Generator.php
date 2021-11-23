@@ -2,7 +2,8 @@
 
 namespace Triangulum\Yii\GiiContainer\generators\model;
 
-use \Triangulum\Yii\GiiContainer\CustomModuleGeneratorSchemaTrait;
+use ReflectionClass;
+use Triangulum\Yii\GiiContainer\CustomModuleGeneratorSchemaTrait;
 use Yii;
 use yii\base\InvalidConfigException;
 use yii\base\NotSupportedException;
@@ -16,11 +17,6 @@ use yii\gii\CodeFile;
 use yii\helpers\Inflector;
 use yii\helpers\StringHelper;
 
-/**
- * This generator will generate one or multiple ActiveRecord classes for the specified database table.
- * @author Qiang Xue <qiang.xue@gmail.com>
- * @since  2.0
- */
 class Generator extends \yii\gii\Generator
 {
     use CustomModuleGeneratorSchemaTrait;
@@ -31,8 +27,8 @@ class Generator extends \yii\gii\Generator
     const JUNCTION_RELATION_VIA_TABLE = 'table';
     const JUNCTION_RELATION_VIA_MODEL = 'model';
 
-    public $db                                 = 'dbAdmin';
-    public $ns                                 = 'app\models';
+    public $db                                 = 'db';
+    public $ns                                 = 'common\entities\\';
     public $tableName;
     public $modelClass;
     public $baseClass                          = 'common\components\base\db\AdminAbstractModel';
@@ -41,13 +37,14 @@ class Generator extends \yii\gii\Generator
     public $generateRelationsFromCurrentSchema = true;
     public $generateLabelsFromComments         = false;
     public $useTablePrefix                     = true;
-    public $standardizeCapitals                = false;
+    public $standardizeCapitals                = true;
     public $singularize                        = false;
     public $useSchemaName                      = true;
     public $generateQuery                      = true;
-    public $queryNs                            = 'app\models';
+    public $queryNs                            = 'common\entities\\';
     public $queryClass;
-    public $queryBaseClass                     = 'Triangulum\Yii\ModuleContainer\System\Db\DbActiveQueryBase';
+    public $queryBaseClass                     = 'Triangulum\Yii\Unit\Data\Db\Query\QueryBase';
+    public $repositoryNs                       = 'common\repositories\\';
 
     /**
      * {@inheritdoc}
@@ -70,7 +67,7 @@ class Generator extends \yii\gii\Generator
      */
     public function rules()
     {
-        $rules=  array_merge(parent::rules(), [
+        $rules = array_merge(parent::rules(), [
             [['db', 'ns', 'tableName', 'modelClass', 'baseClass', 'queryNs', 'queryClass', 'queryBaseClass'], 'filter', 'filter' => 'trim'],
             [['ns', 'queryNs'], 'filter', 'filter' => function ($value) {
                 return trim($value, '\\');
@@ -229,25 +226,31 @@ class Generator extends \yii\gii\Generator
         $relations = $this->generateRelations();
         $db = $this->getDbConnection();
         foreach ($this->getTableNames() as $tableName) {
-            // model :
+            ##################################
+            # Entity :
             $modelClassName = $this->generateClassName($tableName);
             $queryClassName = ($this->generateQuery) ? $this->generateQueryClassName($modelClassName) : false;
             $tableRelations = isset($relations[$tableName]) ? $relations[$tableName] : [];
             $tableSchema = $db->getTableSchema($tableName);
+            $entityFullClass = $this->ns . '\\' . $modelClassName;
+            $repositoryClassName = $this->generateClassName($tableName . 'Repository');
+//            $params['repositoryClassName'] = $repositoryClassName;
+//            $params['repositoryClassNs'] = $this->repositoryNs . $tableName;
 
             $params = [
                 'tableName'           => $tableName,
                 'className'           => $modelClassName,
+                'entityFullClass'     => $entityFullClass,
                 'queryClassName'      => $queryClassName,
                 'tableSchema'         => $tableSchema,
                 'properties'          => $this->generateProperties($tableSchema),
-//                'labels'              => $this->generateLabels($tableSchema),
                 'labels'              => $this->generateLabelsBySchema($this->generateLabels($tableSchema)),
-//                'rules'               => $this->generateRules($tableSchema),
                 'rules'               => $this->generateModelRulesBySchema($tableSchema),
                 'relations'           => $tableRelations,
                 'relationsClassHints' => $this->generateRelationsClassHints($tableRelations, $this->generateQuery),
-                'tableSchemaClass' => $this->getTableSchemaClass()
+                'tableSchemaClass'    => $this->getTableSchemaClass(),
+                'repositoryClassName' => $repositoryClassName,
+                'repositoryClassNs' => $this->repositoryNs . $tableName
             ];
 
             $files[] = new CodeFile(
@@ -255,10 +258,12 @@ class Generator extends \yii\gii\Generator
                 $this->render('model.php', $params)
             );
 
-            // query :
+            ##################################
+            # Query :
             if ($queryClassName) {
                 $params['className'] = $queryClassName;
                 $params['modelClassName'] = $modelClassName;
+                $params['queryFullClass'] = $this->ns . '\\' . $queryClassName;
                 $files[] = new CodeFile(
                     Yii::getAlias('@' . str_replace('\\', '/', $this->queryNs)) . '/' . $queryClassName . '.php',
                     $this->render('query.php', $params)
@@ -266,21 +271,29 @@ class Generator extends \yii\gii\Generator
             }
 
             ##################################
-            //Table Schema :
-            $schemaNameClassName = $this->generateClassName($tableName.'Schema');
+            # Table Schema :
+            $schemaNameClassName = $this->generateClassName($tableName . 'Schema');
             $params['schemaNameClassName'] = $schemaNameClassName;
+            $params['schemaFullClass'] = $this->ns . '\\' . $schemaNameClassName;
             $files[] = new CodeFile(
                 Yii::getAlias('@' . str_replace('\\', '/', $this->ns)) . '/' . $schemaNameClassName . '.php',
                 $this->render('table_schema.php', $params)
             );
+
+            ##################################
+            # Repository :
+            $repositoryClassPath = Yii::getAlias('@' . str_replace('\\', '/', $this->repositoryNs . $tableName)) .'/'. $repositoryClassName . '.php';
+            $files[] = new CodeFile($repositoryClassPath, $this->render('repository.php', $params));
         }
+
+        ray($params)->red();
 
         return $files;
     }
 
     /**
      * Generates the properties for the specified table.
-     * @param \yii\db\TableSchema $table the table schema
+     * @param TableSchema $table the table schema
      * @return array the generated properties (property => type)
      * @since 2.0.6
      */
@@ -329,7 +342,7 @@ class Generator extends \yii\gii\Generator
 
     /**
      * Generates the attribute labels for the specified table.
-     * @param \yii\db\TableSchema $table the table schema
+     * @param TableSchema $table the table schema
      * @return array the generated attribute labels (name => label)
      */
     public function generateLabels($table)
@@ -367,7 +380,7 @@ class Generator extends \yii\gii\Generator
             if ($generateQuery) {
                 $queryClassRealName = '\\' . $this->queryNs . '\\' . $relation[1];
                 if (class_exists($queryClassRealName, true) && is_subclass_of($queryClassRealName, '\yii\db\BaseActiveRecord')) {
-                    /** @var \yii\db\ActiveQuery $activeQuery */
+                    /** @var ActiveQuery $activeQuery */
                     $activeQuery = $queryClassRealName::find();
                     $activeQueryClass = $activeQuery::className();
                     if (strpos($activeQueryClass, $this->ns) === 0) {
@@ -387,7 +400,7 @@ class Generator extends \yii\gii\Generator
 
     /**
      * Generates validation rules for the specified table.
-     * @param \yii\db\TableSchema $table the table schema
+     * @param TableSchema $table the table schema
      * @return array the generated validation rules
      */
     public function generateRules($table)
@@ -491,7 +504,7 @@ class Generator extends \yii\gii\Generator
 
     /**
      * Generates relations using a junction table by adding an extra via() or viaTable() depending on $generateViaRelationMode.
-     * @param \yii\db\TableSchema the table being checked
+     * @param TableSchema the table being checked
      * @param array $fks obtained from the checkJunctionTable() method
      * @param array $relations
      * @return array modified $relations
@@ -776,7 +789,7 @@ class Generator extends \yii\gii\Generator
 
     /**
      * Checks if the given table is a junction table, that is it has at least one pair of unique foreign keys.
-     * @param \yii\db\TableSchema the table being checked
+     * @param $table TableSchema the table being checked
      * @return array|bool all unique foreign key pairs if the table is a junction table,
      * or false if the table is not a junction table.
      */
@@ -830,23 +843,24 @@ class Generator extends \yii\gii\Generator
 
     /**
      * Generate a relation name for the specified table and a base name.
-     * @param array               $relations the relations being generated currently.
-     * @param \yii\db\TableSchema $table     the table schema
-     * @param string              $key       a base name that the relation name may be generated from
-     * @param bool                $multiple  whether this is a has-many relation
+     * @param array       $relations the relations being generated currently.
+     * @param TableSchema $table     the table schema
+     * @param string      $key       a base name that the relation name may be generated from
+     * @param bool        $multiple  whether this is a has-many relation
      * @return string the relation name
      */
     protected function generateRelationName($relations, $table, $key, $multiple)
     {
         static $baseModel;
-        /* @var $baseModel \yii\db\ActiveRecord */
+        /* @var $baseModel ActiveRecord */
         if ($baseModel === null) {
             $baseClass = $this->baseClass;
-            $baseClassReflector = new \ReflectionClass($baseClass);
+            $baseClassReflector = new ReflectionClass($baseClass);
             if ($baseClassReflector->isAbstract()) {
                 $baseClassWrapper =
                     'namespace ' . __NAMESPACE__ . ';' .
                     'class GiiBaseClassWrapper extends \\' . $baseClass . ' {' .
+                    'public function pkGet(): int {}' .
                     'public static function tableName(){' .
                     'return "' . addslashes($table->fullName) . '";' .
                     '}' .
@@ -985,7 +999,6 @@ class Generator extends \yii\gii\Generator
         return $this->tableNames = $tableNames;
     }
 
-
     /**
      * Generates the table name by considering table prefix.
      * If [[useTablePrefix]] is false, the table name will be returned without change.
@@ -1106,13 +1119,13 @@ class Generator extends \yii\gii\Generator
         /** @var Connection $db */
         $db = $this->getDbConnection();
 
-        return $db instanceof \yii\db\Connection ? $db->driverName : null;
+        return $db instanceof Connection ? $db->driverName : null;
     }
 
     /**
      * Checks if any of the specified columns is auto incremental.
-     * @param \yii\db\TableSchema $table   the table schema
-     * @param array               $columns columns to check for autoIncrement property
+     * @param TableSchema $table   the table schema
+     * @param array       $columns columns to check for autoIncrement property
      * @return bool whether any of the specified columns is auto incremental.
      */
     protected function isColumnAutoIncremental($table, $columns)

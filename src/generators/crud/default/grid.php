@@ -19,25 +19,23 @@ namespace <?php echo $frontNS?>;
 
 use yii\grid\SerialColumn;
 use Closure;
-use Triangulum\Yii\ModuleContainer\UI\Front\Element\ElementGrid;
 use <?php echo $generator->searchModelClass?>;
 use <?php echo $generator->modelClass?>;
 <?php echo $tableSchemaUse?>;
 
-use Triangulum\Yii\ModuleContainer\UI\Front\Element\ElementPopup;
-use Triangulum\Yii\ModuleContainer\UI\Html\Label;
-use Triangulum\Yii\ModuleContainer\UI\Html\LabelInline;
-use Triangulum\Yii\ModuleContainer\UI\Html\Dropdown\Dropdown;
-use Triangulum\Yii\ModuleContainer\UI\Html\Dropdown\FilterDropdown;
-use Triangulum\Yii\ModuleContainer\UI\Html\Time;
-use Triangulum\Yii\ModuleContainer\UI\Html\Text;
-use Triangulum\Yii\ModuleContainer\UI\Html\Icons;
-use Triangulum\Yii\ModuleContainer\UI\Html\Span;
-use Triangulum\Yii\ModuleContainer\UI\Html\Growl;
+use \Triangulum\Yii\Unit\Front\Items\FrontItem;
+use \Triangulum\Yii\Unit\Html\Label\Label;
+use \Triangulum\Yii\Unit\Html\Label\LabelInline;
+use \Triangulum\Yii\Unit\Html\Dropdown\Dropdown;
+use \Triangulum\Yii\Unit\Html\Dropdown\FilterDropdown;
+use \Triangulum\Yii\Unit\Html\Time\Time;
+use \Triangulum\Yii\Unit\Html\Text\Text;
+use \Triangulum\Yii\Unit\Html\Icons\Icons;
+use \Triangulum\Yii\Unit\Html\Span\Span;
+use \Triangulum\Yii\Unit\Html\Growl;
 
-final class <?php echo $gridClass?> extends ElementGrid
+final class <?php echo $gridClass?> extends \Triangulum\Yii\Unit\Front\Items\FrontGrid
 {
-
     protected function gridViewRowOptions(): Closure
     {
         return static function (<?php echo $modelClass?> $model) {
@@ -51,10 +49,10 @@ final class <?php echo $gridClass?> extends ElementGrid
     }
 
     /**
-    * @param <?php echo $searchModelClass?> $searchModel
+    * @param <?php echo $searchModelClass?> $dataExplorer
     * @return array
     */
-    public function gridViewColumnsConfig($searchModel = null): array
+    public function gridViewColumnsConfig($dataExplorer = null): array
     {
         $clickBase = $this->defineEditOrViewClickClass();
 

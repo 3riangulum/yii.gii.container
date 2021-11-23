@@ -14,9 +14,9 @@
 /* @var $rules string[] list of validation rules */
 /* @var $relations array list of relations (name => relation declaration) */
 /* @var $tableSchemaClass string */
+/* @var $relationsClassHints array */
 
-echo "<?php\n";
-?>
+echo "<?php\n"; ?>
 
 namespace <?= $generator->ns ?>;
 
@@ -35,7 +35,7 @@ use Yii;
 <?php endforeach; ?>
 <?php endif; ?>
  */
-class <?= $className ?> extends <?= '\\' . ltrim($generator->baseClass, '\\') . "\n" ?>
+final class <?= $className ?> extends <?= '\\' . ltrim($generator->baseClass, '\\') . "\n" ?>
 {
     public static function tableName(): string
     {
@@ -73,14 +73,9 @@ class <?= $className ?> extends <?= '\\' . ltrim($generator->baseClass, '\\') . 
     echo "\n";
 ?>
 
-    public static function find():<?= $queryClassFullName ?>
-    {
-        return new <?= $queryClassFullName ?>(static::class);
-    }
-
     public function pkGet(): int
     {
-        return $this->{<?=$tableSchemaClass?>::ID};
+        return $this->{<?=$tableSchemaClass?>::PK};
     }
 
 <?php endif; ?>

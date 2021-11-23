@@ -4,13 +4,16 @@ namespace Triangulum\Yii\GiiContainer;
 
 use Triangulum\Yii\ModuleContainer\System\Cache\RedisPrefixedCache;
 use Triangulum\Yii\ModuleContainer\System\Log\BaseLog;
-use Triangulum\Yii\ModuleContainer\UI\Front\FrontBase;
 use yii\helpers\Inflector;
 use yii\helpers\StringHelper;
 
 trait CustomModuleGeneratorTrait
 {
     use CustomModuleGeneratorSchemaTrait;
+
+    public string $unitNs = 'backend\units\\';
+    public string $repository = '';
+    public string $tableSchema = '';
 
     public string $moduleNS    = 'backend\modules';
     public string $moduleId    = '';
@@ -19,41 +22,74 @@ trait CustomModuleGeneratorTrait
     public function rulesModule(): array
     {
         return [
-            [['moduleNS', 'moduleId', 'containerId'], 'required'],
-            [['moduleNS', 'moduleId', 'containerId'], 'filter', 'filter' => 'trim'],
+            [['unitNs', 'repository', 'tableSchema'], 'required'],
+            [['unitNs', 'repository', 'tableSchema'], 'filter', 'filter' => 'trim']
         ];
     }
 
-    protected function getContainerNS(): string
+    protected function getRepository(): string
     {
-        return $this->moduleNS . '\\' . $this->moduleId . '\\' . $this->containerId;
+        return trim($this->repository, '\\');
     }
 
-    protected function getContainerClass(): string
+    protected function getTableSchemaClassFull(): string
     {
-        return Inflector::id2camel($this->containerId . 'Container', '_');
+        return trim($this->tableSchema, '\\');
     }
 
-    protected function getContainerUse(): string
+    protected function getUnitNS(): string
     {
-        return 'use ' . $this->getContainerNS() . '\\' . $this->getContainerClass() . ';';
+        return trim($this->unitNs, '\\');
     }
-
 
     protected function getFrontNS(): string
     {
-        return $this->getContainerNS() . '\\UI';
+        return $this->getUnitNS(). '\UI';
+    }
+
+    protected function getUnitAlias(): string
+    {
+        return $this->controllerID;
     }
 
     protected function getFrontClass(): string
     {
-        return Inflector::id2camel($this->containerId . FrontBase::ID, '_');
+        return Inflector::id2camel($this->getUnitAlias() . 'Front');
     }
 
     protected function getFrontUse(): string
     {
         return 'use ' . $this->getFrontNS() . '\\' . $this->getFrontClass() . ';';
     }
+
+
+    protected function getCrudFormClass(): string
+    {
+        return Inflector::id2camel($this->getUnitAlias() . 'CrudForm');
+    }
+
+    protected function getCrudFormNS(): string
+    {
+        return '\\' . $this->getFrontNS() . '\\form\\' . $this->getCrudFormClass();
+    }
+
+    protected function getRouteClassName(): string
+    {
+        return Inflector::id2camel($this->getUnitAlias() . 'Router');
+    }
+
+
+    protected function getGridClass(): string
+    {
+        return ucfirst(Inflector::id2camel($this->getUnitAlias() . 'Grid'));
+    }
+
+
+
+
+
+    #####
+
 
     protected function getFrontVar(): string
     {
@@ -105,8 +141,26 @@ trait CustomModuleGeneratorTrait
         return $this->getCacheClass() . ' ' . $this->getCacheVar();
     }
 
-    protected function getGridClass(): string
+    protected function getContainerNS(): string
     {
-        return ucfirst(Inflector::id2camel($this->containerId . 'Grid', '_'));
+        return '';
+
+        return $this->moduleNS . '\\' . $this->moduleId . '\\' . $this->containerId;
     }
+
+    protected function getContainerClass(): string
+    {
+        return '';
+
+        return Inflector::id2camel($this->containerId . 'Container', '_');
+    }
+
+    protected function getContainerUse(): string
+    {
+
+        return '';
+        return 'use ' . $this->getContainerNS() . '\\' . $this->getContainerClass() . ';';
+    }
+
+
 }

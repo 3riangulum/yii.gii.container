@@ -8,6 +8,8 @@ use yii\helpers\StringHelper;
 
 /* @var $this yii\web\View */
 /* @var $generator yii\gii\generators\crud\Generator */
+/* @var $frontClass string */
+/* @var $repositoryClassNameFull string */
 
 /* @var $containerUse string */
 /* @var $containerClass string */
@@ -20,6 +22,9 @@ use yii\helpers\StringHelper;
 /* @var $cacheUse string */
 /* @var $cacheParam string */
 /* @var $cacheVar string */
+/* @var $repositoryClass string */
+/* @var $repositoryParam string */
+/* @var $repositoryVar string */
 
 $controllerClass = StringHelper::basename($generator->controllerClass);
 $modelClass = StringHelper::basename($generator->modelClass);
@@ -35,7 +40,10 @@ $urlParams = $generator->generateUrlParams();
 $actionParams = $generator->generateActionParams();
 $actionParamComments = $generator->generateActionParamComments();
 
+
 echo "<?php\n"; ?>
+
+
 
 namespace <?= StringHelper::dirname(ltrim($generator->controllerClass, '\\')) ?>;
 
@@ -50,186 +58,84 @@ use yii\web\NotFoundHttpException;
 use yii\filters\VerbFilter;
 use Throwable;
 use Yii;
-<?=$containerUse?><?="\n"?>
-<?=$frontUse?><?="\n"?>
-<?=$logUse?><?="\n"?>
-<?=$cacheUse?><?="\n"?>
 
-class <?= $controllerClass ?> extends <?= StringHelper::basename($generator->baseControllerClass) . "\n" ?>
+<?=$frontUse?><?="\n"?>
+
+/**
+* @property <?php echo $frontClass?> $front
+*/
+class <?= $controllerClass ?> extends ControllerWeb <?= "\n" ?>
 {<?="\n"?>
-    public function actionIndex(
-        <?=$frontParam?>,
-        <?=$logParam?><?="\n"?>
-    ): string {<?="\n"?>
+
+    protected string $frontClass = <?php echo $frontClass?>::class;
+
+    public function actionIndex(): string {<?="\n"?>
         try {<?="\n"?>
             return $this->render(
-                <?=$frontVar?>->templatePath('index.php'),
+                $this->front->template('index.php'),
                 [
-                    'actionTitle' => <?=$containerClass?>::NAME,
-                    'creator'     => <?=$frontVar?>->creator(),
-                    'grid'        => <?=$frontVar?>->gridSearch(
-                        new <?=  $searchModelClass ?>(),
-                        $this->request->queryParams
-                    ),
+                    'pageTitle' => $this->front->getTitle(),
+                    'uiCreator' => $this->front->creator(),
+                    'grid'      => $this->front->grid($this->request->queryParams),
                 ]
             );<?="\n"?>
         } catch (Throwable $t) {
-            <?=$logVar?>->onThrowable($t);
+            Yii::$app->telegramService->sendAdmin($t->getMessage());
             return $this->renderThrowable($t);
         }
     }
 
-    public function actionView(
-        int $id,
-        <?=$frontParam?>,
-        <?=$logParam?><?="\n"?>
-    ): string {<?="\n"?>
+    public function actionCreate(\<?=$repositoryClassNameFull?> $repository ): string {<?="\n"?>
         try {<?="\n"?>
-            return $this->renderViewAction([
-                'model' => $this->findModel($id),
-                'actionTitle' => <?=$containerClass?>::NAME,
-                'popup'     => <?=$frontVar?>->viewer(),
-
-            ]);<?="\n"?>
-        } catch (Throwable $t) {
-            <?=$logVar?>->onThrowable($t);
-            return $this->renderThrowable($t);
-        }
-    }
-
-    public function actionCreate(
-        <?=$frontParam?>,
-        <?=$logParam?>,<?="\n"?>
-        <?=$cacheParam?><?="\n"?>
-    ): string {<?="\n"?>
-        try {<?="\n"?>
-            $model = new <?= $modelClass ?>();
-            if ($model->dataSave(Yii::$app->request->post())) {
-                $this->hideModal = 1;
-                <?=$cacheVar?>->flush();
+            $entity = $repository->create();
+            $ui = $this->front->creator();
+            if ($this->isPost() && $repository->dataSave($entity, $this->getPost())) {
+                return $this->renderNotifyAction($ui->exportViewSuccessData());
             }
 
             return $this->renderAjax(
-                <?=$frontVar?>->templatePath('_form.php'),
-                [
-                    'actionTitle' => $this->createTitle(<?=$containerClass?>::NAME),
-                    'popup'       => <?=$frontVar?>->creator(),
-                    'model'       => $model,
-                    'hideModal'   => $this->hideModal,
-                ]
+                $this->front->template('_form.php'),
+                ['form' => $this->front->loadCrudForm($entity, $ui)]
             );
         } catch (Throwable $t) {
-            <?=$logVar?>->onThrowable($t);
+            Yii::$app->telegramService->sendAdmin($t->getMessage());
             return $this->renderThrowable($t);
         }
     }
 
-    public function actionUpdate(
-        int $id,
-        <?=$frontParam?>,
-        <?=$logParam?>,<?="\n"?>
-        <?=$cacheParam?><?="\n"?>
-    ): string {<?="\n"?>
+    public function actionUpdate(int $id, \<?=$repositoryClassNameFull?> $repository): string {<?="\n"?>
         try {<?="\n"?>
-            $model = $this->findModel($id);
-            if ($model->dataSave(Yii::$app->request->post())) {
-                $this->hideModal = 1;
-                <?=$cacheVar?>->flush();
+            $entity = $repository->single($id);
+            $ui = $this->front->editor();
+            if ($this->isPost() && $repository->dataSave($entity, $this->getPost())) {
+            return $this->renderNotifyAction($ui->exportViewSuccessData());
             }
 
             return $this->renderAjax(
-                <?=$frontVar?>->templatePath('_form.php'),
-                [
-                    'actionTitle' => $this->editTitle(<?=$containerClass?>::NAME),
-                    'popup'       => <?=$frontVar?>->editor(),
-                    'model'       => $model,
-                    'hideModal'   => $this->hideModal,
-                ]
+                $this->front->template('_form.php'),
+                ['form' => $this->front->loadCrudForm($entity, $ui)]
             );
         } catch (Throwable $t) {
-            <?=$logVar?>->onThrowable($t);
+            Yii::$app->telegramService->sendAdmin($t->getMessage());
             return $this->renderThrowable($t);
         }
     }
 
-    public function actionDelete(
-        int $id,
-        <?=$frontParam?>,
-        <?=$logParam?>,<?="\n"?>
-        <?=$cacheParam?><?="\n"?>
-    ): string {<?="\n"?>
+    public function actionDelete( int $id, \<?=$repositoryClassNameFull?> $repository ): string {<?="\n"?>
+
         $error = '';
         try {
-            $model = $this->findModel($id);
-            if (!$model->delete()) {
-                $error = $model->getErrorsAsString();
-            } else {
-                <?=$cacheVar?>->flush();
+            $entity = $repository->single($id);
+            if (!$repository->delete($entity)) {
+                $error = $entity->errorsToString();
             }
         } catch (Throwable $t) {
-            <?=$logVar?>->onThrowable($t, [$id]);
             $error = $this->renderThrowable($t);
         }
 
         return $this->renderDeleteAction([
-            'title' => $this->deleteTitle(<?=$containerClass?>::NAME),
             'error' => $error,
-            'popup' => <?=$frontVar?>->eraser(),
+            'popup' => $this->front->eraser(),
         ]);
-    }
-
-    protected function findModel(<?= $actionParams ?>): <?= $modelClass ?>
-    {
-<?php
-if (count($pks) === 1) {
-    $condition = '$id';
-} else {
-    $condition = [];
-    foreach ($pks as $pk) {
-        $condition[] = "'$pk' => \$$pk";
-    }
-    $condition = '[' . implode(', ', $condition) . ']';
-}
-?>
-        if (($model = <?= $modelClass ?>::findOne(<?= $condition ?>)) !== null) {
-            return $model;
-        }
-
-        $this->notFoundHttpException();
-    }
-
-
-    public function actionDuplicate(
-        int $id,
-        <?=$frontParam?>,
-        <?=$logParam?>,<?="\n"?>
-        <?=$cacheParam?><?="\n"?>
-    ): string {<?="\n"?>
-        try {<?="\n"?>
-            $modelOrigin = $this->findModel($id);
-            $copy = $modelOrigin->toArray();
-            unset($copy['id'], $copy['cdate'], $copy['udate'], $copy['active']);
-
-            $model = new <?= $modelClass ?>();
-            $model->setAttributes($copy);
-
-            if ($model->dataSave(Yii::$app->request->post())) {
-                $this->hideModal = 1;
-                <?=$cacheVar?>->flush();
-            }
-
-            return $this->renderAjax(
-                <?=$frontVar?>->templatePath('_form.php'),
-                [
-                    'actionTitle' => $this->duplicateTitle(<?=$containerClass?>::NAME),
-                    'popup'       => <?=$frontVar?>->duplicator(),
-                    'model'       => $model,
-                    'hideModal'   => $this->hideModal,
-                ]
-            );
-        } catch (Throwable $t) {
-            <?=$logVar?>->onThrowable($t);
-            return $this->renderThrowable($t);
-        }
     }
 }

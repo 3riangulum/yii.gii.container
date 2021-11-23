@@ -4,7 +4,7 @@
  */
 
 /* @var $this yii\web\View */
-/* @var $generator yii\gii\generators\model\Generator */
+/* @var $generator Triangulum\Yii\GiiContainer\generators\model\Generator */
 /* @var $tableName string full table name */
 /* @var $className string class name */
 /* @var $tableSchema yii\db\TableSchema */
@@ -13,14 +13,15 @@
 /* @var $relations array list of relations (name => relation declaration) */
 /* @var $className string class name */
 /* @var $modelClassName string related model class name */
+/* @var $tableSchemaClass string  */
+/* @var $repositoryClassName string  */
 
 $modelFullClassName = $modelClassName;
 if ($generator->ns !== $generator->queryNs) {
     $modelFullClassName = '\\' . $generator->ns . '\\' . $modelFullClassName;
 }
 
-echo "<?php\n";
-?>
+echo "<?php\n"; ?>
 
 namespace <?= $generator->queryNs ?>;
 
@@ -42,5 +43,10 @@ final class <?= $className ?> extends <?= '\\' . ltrim($generator->queryBaseClas
     public function one($db = null)
     {
         return parent::one($db);
+    }
+
+    public function single(int $pk): ?<?= $modelFullClassName; ?>
+    {
+        return $this->first(<?php echo $tableSchemaClass?>::PK, $pk);
     }
 }

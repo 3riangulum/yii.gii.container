@@ -8,14 +8,14 @@
 echo "<?php\n";
 ?>
 
-use \Triangulum\Yii\ModuleContainer\UI\Html\RowCol;
-use yii\helpers\Html;
+use Triangulum\Yii\ModuleContainer\UI\Html\RowCol;
 
-/* @var $actionTitle string */
-/* @var $grid <?php echo $gridNS ?> */
-/* @var $creator Triangulum\Yii\ModuleContainer\UI\Front\Element\ElementPopup */
 /* @var $this yii\web\View */
+/* @var $grid <?php echo $gridNS ?> */
+/* @var $uiCreator Triangulum\Yii\Unit\Front\Items\FrontSimple */
+/* @var $pageTitle string */
 
-$creator->registerPopup($this);
-RowCol::two([$creator->htmlButton()]);
-$grid->renderByPjax($this, $actionTitle);
+$this->title = $pageTitle;
+$uiCreator->registerPopup($this);
+RowCol::two([$uiCreator->htmlButton()]);
+$grid->renderByPjax($this);
