@@ -62,6 +62,7 @@ use Yii;
 <?=$frontUse?><?="\n"?>
 
 /**
+* @property \<?=$repositoryClassNameFull?> $repository
 * @property <?php echo $frontClass?> $front
 */
 class <?= $controllerClass ?> extends ControllerWeb <?= "\n" ?>
@@ -85,11 +86,11 @@ class <?= $controllerClass ?> extends ControllerWeb <?= "\n" ?>
         }
     }
 
-    public function actionCreate(\<?=$repositoryClassNameFull?> $repository ): string {<?="\n"?>
+    public function actionCreate(): string {<?="\n"?>
         try {<?="\n"?>
-            $entity = $repository->create();
+            $entity = $this->repository->create();
             $ui = $this->front->creator();
-            if ($this->isPost() && $repository->dataSave($entity, $this->getPost())) {
+            if ($this->isPost() && $this->repository->dataSave($entity, $this->getPost())) {
                 return $this->renderNotifyAction($ui->exportViewSuccessData());
             }
 
@@ -103,11 +104,11 @@ class <?= $controllerClass ?> extends ControllerWeb <?= "\n" ?>
         }
     }
 
-    public function actionUpdate(int $id, \<?=$repositoryClassNameFull?> $repository): string {<?="\n"?>
+    public function actionUpdate(int $id): string {<?="\n"?>
         try {<?="\n"?>
-            $entity = $repository->single($id);
+            $entity = $this->repository->single($id);
             $ui = $this->front->editor();
-            if ($this->isPost() && $repository->dataSave($entity, $this->getPost())) {
+            if ($this->isPost() && $this->repository->dataSave($entity, $this->getPost())) {
             return $this->renderNotifyAction($ui->exportViewSuccessData());
             }
 
@@ -125,8 +126,8 @@ class <?= $controllerClass ?> extends ControllerWeb <?= "\n" ?>
 
         $error = '';
         try {
-            $entity = $repository->single($id);
-            if (!$repository->delete($entity)) {
+            $entity = $this->repository->single($id);
+            if (!$this->repository->delete($entity)) {
                 $error = $entity->errorsToString();
             }
         } catch (Throwable $t) {
