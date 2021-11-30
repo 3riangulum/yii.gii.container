@@ -38,6 +38,9 @@ use <?php echo $queryFullClass ?>;
 use <?php echo $entityFullClass ?>;
 use <?php echo $schemaFullClass ?>;
 
+/**
+* @method static self build
+*/
 final class <?= $repositoryClassName  ?>  extends DbRepositoryAbstract
 {
     public function query(): <?php echo $className ?>

@@ -1,15 +1,18 @@
 <?php
 
-/* @var $routeNS string */
+/* @var $modelNs string */
 /* @var $routeClassName string */
 /* @var $unitAlias string */
 
 echo '<?php' ?>
 
-namespace <?php echo $routeNS ?>;
+namespace <?php echo $modelNs ?>;
 
 use Triangulum\Yii\Unit\Admittance\RouteBase;
 
+/**
+* @method static self build
+*/
 final class <?php echo $routeClassName?> extends RouteBase
 {
     protected string $unitAlias = '<?php  echo $unitAlias;?>';
