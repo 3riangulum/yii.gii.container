@@ -34,6 +34,9 @@ use \Triangulum\Yii\Unit\Html\Icons\Icons;
 use \Triangulum\Yii\Unit\Html\Span\Span;
 use \Triangulum\Yii\Unit\Html\Growl;
 
+/**
+* @method static self build(array $config)
+*/
 final class <?php echo $gridClass?> extends \Triangulum\Yii\Unit\Front\Items\FrontGrid
 {
     protected function gridViewRowOptions(): Closure

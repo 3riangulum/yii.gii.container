@@ -69,6 +69,7 @@ class <?= $controllerClass ?> extends ControllerWeb <?= "\n" ?>
 {<?="\n"?>
 
     protected string $frontClass = <?php echo $frontClass?>::class;
+    protected string $repositoryClass = \<?=$repositoryClassNameFull?>::class;
 
     public function actionIndex(): string {<?="\n"?>
         try {<?="\n"?>

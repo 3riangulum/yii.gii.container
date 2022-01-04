@@ -75,7 +75,7 @@ final class <?= $className ?> extends <?= '\\' . ltrim($generator->baseClass, '\
 
     public function pkGet(): int
     {
-        return $this->{<?=$tableSchemaClass?>::PK};
+        return (int)$this->{<?=$tableSchemaClass?>::PK};
     }
 
 <?php endif; ?>
